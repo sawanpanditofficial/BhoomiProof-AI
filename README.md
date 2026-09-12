@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](#)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg?logo=fastapi&logoColor=white)](#)
 [![React](https://img.shields.io/badge/Frontend-React%2018%20%2B%20Vite-61dafb.svg?logo=react&logoColor=black)](#)
-[![Bilingual](https://img.shields.io/badge/Language-English-purple.svg)](#)
+[![Bilingual](https://img.shields.io/badge/Language-English and hindi-purple.svg)](#)
 
 ---
 
