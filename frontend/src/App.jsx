@@ -48,6 +48,10 @@ function App() {
     }
   });
 
+  useEffect(() => {
+    document.title = "BhoomiProof AI By NepTech Ninjas";
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("bhoomi_officer");
     localStorage.removeItem("bhoomi_token");
@@ -327,10 +331,14 @@ function App() {
           onClick={() => setPage("dashboard")}
           style={{ cursor: "pointer" }}
         >
-          <div className="logo-icon">B</div>
+          <img
+            src="/favicon.svg"
+            alt="BhoomiProof AI"
+            style={{ width: "38px", height: "38px", borderRadius: "8px", flexShrink: 0 }}
+          />
           <div>
-            <h2>BhoomiProof</h2>
-            <span>{t.logo_subtitle}</span>
+            <h2>BhoomiProof AI</h2>
+            <span style={{ fontSize: "10px", opacity: 0.8, display: "block" }}>By NepTech Ninjas</span>
           </div>
         </div>
 
