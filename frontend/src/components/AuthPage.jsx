@@ -14,7 +14,7 @@ import {
   Languages
 } from "lucide-react";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 function AuthPage({ onLoginSuccess, onOpenCitizenPortal, lang = "en", onToggleLang }) {
   const [mode, setMode] = useState("login"); // "login" | "register"
@@ -25,6 +25,16 @@ function AuthPage({ onLoginSuccess, onOpenCitizenPortal, lang = "en", onToggleLa
   const [role, setRole] = useState("Tehsildar / Sub-Registrar");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const formatErrorMessage = (err) => {
+    const msg = err?.message || "";
+    if (msg === "Load failed" || msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+      return window.location.protocol === "https:"
+        ? "Mixed Content Error: Online HTTPS sites cannot connect to http://localhost:8000. Please run the frontend locally at http://localhost:5173 or deploy the backend to a cloud server."
+        : "Backend connection error: Ensure the backend is running at http://localhost:8000 via 'uvicorn main:app --reload'.";
+    }
+    return msg || "Authentication failed";
+  };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -55,13 +65,13 @@ function AuthPage({ onLoginSuccess, onOpenCitizenPortal, lang = "en", onToggleLa
 
       onLoginSuccess(data.officer);
     } catch (err) {
-      setError(err.message || "Failed to authenticate with government registry");
+      setError(formatErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickDemoLogin = (selectedRole) => {
+  const handleQuickDemoLogin = async (selectedRole) => {
     const isVerification = selectedRole.toLowerCase().includes("verification");
     const demoId = isVerification ? "verify.officer@gov.in" : "sawan.tehsildar@gov.in";
     const demoPass = isVerification ? "verify2026" : "admin2026";
@@ -72,25 +82,32 @@ function AuthPage({ onLoginSuccess, onOpenCitizenPortal, lang = "en", onToggleLa
     // Immediately trigger login
     setLoading(true);
     setError("");
-    fetch(`${API_BASE}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        officer_id: demoId,
-        password: demoPass,
-        role: selectedRole || "Tehsildar / Sub-Registrar",
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          localStorage.setItem("bhoomi_officer", JSON.stringify(data.officer));
-          localStorage.setItem("bhoomi_token", data.token);
-          onLoginSuccess(data.officer);
-        }
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          officer_id: demoId,
+          password: demoPass,
+          role: selectedRole || "Tehsildar / Sub-Registrar",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || "Authentication failed");
+      }
+
+      if (data.success) {
+        localStorage.setItem("bhoomi_officer", JSON.stringify(data.officer));
+        localStorage.setItem("bhoomi_token", data.token);
+        onLoginSuccess(data.officer);
+      }
+    } catch (err) {
+      setError(formatErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

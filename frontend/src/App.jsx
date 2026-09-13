@@ -31,7 +31,7 @@ import UserManagementView from "./components/UserManagementView";
 import OfflineSyncBadge from "./components/OfflineSyncBadge";
 import { translations } from "./utils/translations";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 function App() {
   const [page, setPage] = useState("dashboard"); // "dashboard" | "search" | "verification" | "collector" | "users"

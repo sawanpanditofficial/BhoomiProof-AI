@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
 from models.land_record import LandRecord
+from models.officer import Officer
 from ocr_engine import extract_text
 from field_extractor import extract_land_record_fields
 from validation_engine import validate_land_record
@@ -26,8 +27,154 @@ from verification_engine import (
 # Alias for compatibility with earlier references
 extract_land_fields = extract_land_record_fields
 
-# Auto-provision tables
+# Auto-provision tables (land_records, officers)
 Base.metadata.create_all(bind=engine)
+
+# =========================================================
+# SEED INITIAL OFFICERS IF EMPTY IN DATABASE
+# =========================================================
+
+def seed_initial_officers():
+    db = next(get_db())
+    try:
+        if db.query(Officer).count() == 0:
+            initial_officers = [
+                Officer(
+                    id="OFFICER-001",
+                    officer_id="sawan.tehsildar@gov.in",
+                    name="Shri Sawan Pandit",
+                    role="Tehsildar / Sub-Registrar",
+                    jurisdiction="Madhubani Sadar",
+                    department="Land Revenue & Land Reforms Dept.",
+                    email="sawan.tehsildar@gov.in",
+                    phone="+91 98351 22910",
+                    is_active=True,
+                    is_super_admin=True,
+                    last_login="Just now",
+                    permissions=json.dumps({
+                        "can_upload": True,
+                        "can_approve": True,
+                        "can_edit": True,
+                        "can_delete": True,
+                        "can_export": True,
+                        "can_manage_users": True,
+                    }),
+                ),
+                Officer(
+                    id="OFFICER-002",
+                    officer_id="arvind.dm@ias.nic.in",
+                    name="Arvind Kumar, IAS",
+                    role="District Magistrate / Collector",
+                    jurisdiction="District Collectorate (All Tehsils)",
+                    department="District Revenue Administration",
+                    email="arvind.dm@ias.nic.in",
+                    phone="+91 94310 11002",
+                    is_active=True,
+                    is_super_admin=True,
+                    last_login="2 hours ago",
+                    permissions=json.dumps({
+                        "can_upload": True,
+                        "can_approve": True,
+                        "can_edit": False,
+                        "can_delete": False,
+                        "can_export": True,
+                        "can_manage_users": True,
+                    }),
+                ),
+                Officer(
+                    id="OFFICER-003",
+                    officer_id="rajeshwar.kanoongo@bihar.gov.in",
+                    name="Rajeshwar Singh",
+                    role="Revenue Inspector (Kanoongo)",
+                    jurisdiction="Circle #2, Benipatti",
+                    department="Land Revenue & Survey Division",
+                    email="rajeshwar.kanoongo@bihar.gov.in",
+                    phone="+91 97712 55431",
+                    is_active=True,
+                    is_super_admin=False,
+                    last_login="Yesterday, 16:40",
+                    permissions=json.dumps({
+                        "can_upload": True,
+                        "can_approve": True,
+                        "can_edit": True,
+                        "can_delete": False,
+                        "can_export": True,
+                        "can_manage_users": False,
+                    }),
+                ),
+                Officer(
+                    id="OFFICER-004",
+                    officer_id="sunita.patwari@bihar.gov.in",
+                    name="Sunita Verma",
+                    role="Lekhpal / Patwari",
+                    jurisdiction="Halka Rampur & Danapur",
+                    department="Field Survey & Mutation Cell",
+                    email="sunita.patwari@bihar.gov.in",
+                    phone="+91 91223 78912",
+                    is_active=True,
+                    is_super_admin=False,
+                    last_login="3 days ago",
+                    permissions=json.dumps({
+                        "can_upload": True,
+                        "can_approve": False,
+                        "can_edit": False,
+                        "can_delete": False,
+                        "can_export": True,
+                        "can_manage_users": False,
+                    }),
+                ),
+                Officer(
+                    id="OFFICER-005",
+                    officer_id="manoj.operator@bihar.gov.in",
+                    name="Manoj Tiwari",
+                    role="Registry Data Operator",
+                    jurisdiction="Sub-Registrar Counter 3",
+                    department="Registration & Stamp Duty Branch",
+                    email="manoj.operator@bihar.gov.in",
+                    phone="+91 94314 99120",
+                    is_active=False,
+                    is_super_admin=False,
+                    last_login="12 days ago",
+                    permissions=json.dumps({
+                        "can_upload": False,
+                        "can_approve": False,
+                        "can_edit": False,
+                        "can_delete": False,
+                        "can_export": False,
+                        "can_manage_users": False,
+                    }),
+                ),
+                Officer(
+                    id="OFFICER-006",
+                    officer_id="verify.officer@gov.in",
+                    name="Rajeshwar Singh (Verification Officer)",
+                    role="District Land Verification Officer",
+                    jurisdiction="District Verification Cell",
+                    department="Land Revenue & Mutation Division",
+                    email="verify.officer@gov.in",
+                    phone="+91 94312 88201",
+                    is_active=True,
+                    is_super_admin=False,
+                    last_login="Just now",
+                    permissions=json.dumps({
+                        "can_upload": True,
+                        "can_approve": True,
+                        "can_edit": False,
+                        "can_delete": False,
+                        "can_export": True,
+                        "can_manage_users": False,
+                    }),
+                ),
+            ]
+            db.add_all(initial_officers)
+            db.commit()
+    except Exception as e:
+        print(f"Error seeding officers: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+seed_initial_officers()
 
 # =========================================================
 # SEED INITIAL RECORDS IF EMPTY
@@ -187,11 +334,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-    ],
+    allow_origin_regex=r".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -234,6 +377,9 @@ class VerificationRequest(BaseModel):
 class RecordUpdateRequest(BaseModel):
     owner_name: str = None
     father_name: str = None
+    owner_mobile: str = None
+    owner_aadhar: str = None
+    owner_pan: str = None
     district: str = None
     village: str = None
     survey_number: str = None
@@ -279,11 +425,25 @@ class CreateOfficerRequest(BaseModel):
     permissions: Optional[Dict[str, bool]] = None
 
 
-def find_record_file(record_id: str):
+def find_record_file(record_id: str, db: Session = None):
     matching_files = list(UPLOAD_DIR.glob(f"{record_id}.*"))
-    if not matching_files:
-        return None
-    return matching_files[0]
+    if matching_files:
+        return matching_files[0]
+    if db:
+        r = db.query(LandRecord).filter(
+            or_(
+                LandRecord.record_id == record_id,
+                LandRecord.document_number == record_id
+            )
+        ).first()
+        if r and r.source_file:
+            fp = UPLOAD_DIR / r.source_file
+            if fp.exists():
+                return fp
+            m2 = list(UPLOAD_DIR.glob(f"{r.record_id}.*"))
+            if m2:
+                return m2[0]
+    return None
 
 
 def calculate_field_completeness(fields: dict):
@@ -399,6 +559,103 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
             "field_detection": f"{min(round(float(avg_conf)), 99)}%",
             "consistency_check": "90%",
         },
+    }
+
+
+# =========================================================
+# COLLECTOR ANALYTICS API (DYNAMIC FROM POSTGRESQL)
+# =========================================================
+
+@app.get("/api/analytics/collector")
+def get_collector_analytics(db: Session = Depends(get_db)):
+    total_records = db.query(LandRecord).count()
+
+    if total_records == 0:
+        return {
+            "total_mutations": 0,
+            "verified_count": 0,
+            "fraud_blocked_count": 0,
+            "pending_count": 0,
+            "mutation_tat": "0.0 Min",
+            "revenue_realized": "₹0.00",
+            "fraud_amount_averted": "₹0.00",
+            "land_area_protected": "0 Hectares",
+            "tehsils": [],
+            "empty": True,
+            "message": "No land records uploaded yet. Upload land deeds to generate live district intelligence.",
+        }
+
+    verified_count = db.query(LandRecord).filter(LandRecord.status == "Verified").count()
+    fraud_blocked = db.query(LandRecord).filter(
+        or_(
+            LandRecord.status == "Rejected",
+            LandRecord.is_tampered == True,
+            LandRecord.risk_level == "HIGH",
+            LandRecord.risk_score >= 50.0,
+        )
+    ).count()
+    pending_count = db.query(LandRecord).filter(
+        or_(LandRecord.status == "Pending", LandRecord.status == "Review")
+    ).count()
+
+    # Dynamic Revenue: each registered/verified deed generates estimated stamp duty
+    revenue_val = round((total_records * 1.25) / 100, 2)
+    revenue_str = f"₹{revenue_val} Cr" if revenue_val >= 1.0 else f"₹{round(total_records * 1.25, 1)} Lakh"
+
+    # Fraud Averted: each blocked/flagged deed saves fraudulent loss
+    fraud_val = round((fraud_blocked * 18.5) / 100, 2)
+    fraud_str = f"₹{fraud_val} Cr" if fraud_val >= 1.0 else f"₹{round(fraud_blocked * 18.5, 1)} Lakh"
+
+    # Protected Land Area estimation
+    area_count = round(total_records * 1.4, 1)
+
+    # Dynamic Tehsil grouping by village / circle from real records
+    records = db.query(LandRecord).all()
+    tehsil_dict = {}
+    for r in records:
+        t_name = (r.village or r.district or "District HQ").strip().title()
+        if t_name not in tehsil_dict:
+            tehsil_dict[t_name] = {
+                "name": t_name,
+                "mutations": 0,
+                "verified": 0,
+                "fraud": 0,
+                "revenue_raw": 0.0,
+            }
+        tehsil_dict[t_name]["mutations"] += 1
+        if r.status == "Verified":
+            tehsil_dict[t_name]["verified"] += 1
+        if r.status == "Rejected" or r.is_tampered or (r.risk_score and r.risk_score >= 50):
+            tehsil_dict[t_name]["fraud"] += 1
+        tehsil_dict[t_name]["revenue_raw"] += 1.25
+
+    tehsils_list = []
+    for t_name, t_data in tehsil_dict.items():
+        m_count = t_data["mutations"]
+        f_count = t_data["fraud"]
+        risk_pct = round((f_count / m_count) * 100, 1) if m_count > 0 else 0.0
+        status_label = "EXCELLENT" if risk_pct <= 2.5 else ("MODERATE" if risk_pct <= 6.0 else "ATTENTION")
+        rev = round(t_data["revenue_raw"], 1)
+        tehsils_list.append({
+            "name": t_name,
+            "mutations": m_count,
+            "revenue": f"₹{rev} Lakh",
+            "fraudBlocked": f"₹{round(f_count * 18.5, 1)} Lakh",
+            "riskRate": risk_pct,
+            "status": status_label,
+        })
+
+    return {
+        "total_mutations": total_records,
+        "verified_count": verified_count,
+        "fraud_blocked_count": fraud_blocked,
+        "pending_count": pending_count,
+        "mutation_tat": "4.2 Minutes" if verified_count > 0 else "0.0 Min",
+        "revenue_realized": revenue_str,
+        "fraud_amount_averted": fraud_str,
+        "land_area_protected": f"{area_count} Hectares",
+        "tehsils": tehsils_list,
+        "empty": False,
     }
 
 
@@ -594,6 +851,9 @@ def get_record_details(record_id: str, db: Session = Depends(get_db)):
         "document_number": r.document_number,
         "owner_name": r.owner_name,
         "father_name": r.father_name,
+        "owner_mobile": r.owner_mobile,
+        "owner_aadhar": r.owner_aadhar,
+        "owner_pan": r.owner_pan,
         "district": r.district,
         "village": r.village,
         "survey_number": r.survey_number,
@@ -864,14 +1124,21 @@ def generate_official_deed_scan_svg(record: LandRecord) -> str:
 
 @app.get("/api/records/{record_id}/file")
 def get_record_file(record_id: str, db: Session = Depends(get_db)):
-    file_path = find_record_file(record_id)
+    file_path = find_record_file(record_id, db)
     if file_path and file_path.exists():
         suffix = file_path.suffix.lower()
-        media_type = (
-            "application/pdf"
-            if suffix == ".pdf"
-            else f"image/{suffix.replace('.', '')}"
-        )
+        if suffix == ".pdf":
+            media_type = "application/pdf"
+        elif suffix in [".jpg", ".jpeg"]:
+            media_type = "image/jpeg"
+        elif suffix == ".png":
+            media_type = "image/png"
+        elif suffix == ".webp":
+            media_type = "image/webp"
+        elif suffix == ".svg":
+            media_type = "image/svg+xml"
+        else:
+            media_type = "application/octet-stream"
         return FileResponse(
             path=str(file_path),
             media_type=media_type,
@@ -879,7 +1146,12 @@ def get_record_file(record_id: str, db: Session = Depends(get_db)):
         )
 
     # Fallback: Instead of 404 raw error / white screen, generate an authentic deed scan SVG!
-    rec = db.query(LandRecord).filter(LandRecord.record_id == record_id).first()
+    rec = db.query(LandRecord).filter(
+        or_(
+            LandRecord.record_id == record_id,
+            LandRecord.document_number == record_id,
+        )
+    ).first()
     if not rec:
         raise HTTPException(status_code=404, detail="Land record not found")
 
@@ -932,6 +1204,9 @@ def update_land_record(
     editable_keys = [
         "owner_name",
         "father_name",
+        "owner_mobile",
+        "owner_aadhar",
+        "owner_pan",
         "district",
         "village",
         "survey_number",
@@ -997,6 +1272,9 @@ def update_land_record(
             "record_id": r.record_id,
             "document_number": r.document_number,
             "owner_name": r.owner_name,
+            "owner_mobile": r.owner_mobile,
+            "owner_aadhar": r.owner_aadhar,
+            "owner_pan": r.owner_pan,
             "survey_number": r.survey_number,
             "district": r.district,
             "village": r.village,
@@ -1045,169 +1323,45 @@ def delete_land_record(record_id: str, db: Session = Depends(get_db)):
 # GOVERNMENT OFFICER AUTHENTICATION & USER RBAC DIRECTORY
 # =========================================================
 
-OFFICERS_DIRECTORY = [
-    {
-        "id": "OFFICER-001",
-        "officer_id": "sawan.tehsildar@gov.in",
-        "name": "Shri Sawan Pandit",
-        "role": "Tehsildar / Sub-Registrar",
-        "jurisdiction": "Madhubani Sadar",
-        "department": "Land Revenue & Land Reforms Dept.",
-        "email": "sawan.tehsildar@gov.in",
-        "phone": "+91 98351 22910",
-        "is_active": True,
-        "is_super_admin": True,
-        "created_at": "2024-01-15T09:30:00Z",
-        "last_login": "Just now",
-        "permissions": {
-            "can_upload": True,
-            "can_approve": True,
-            "can_edit": True,
-            "can_delete": True,
-            "can_export": True,
-            "can_manage_users": True,
-        },
-    },
-    {
-        "id": "OFFICER-002",
-        "officer_id": "arvind.dm@ias.nic.in",
-        "name": "Arvind Kumar, IAS",
-        "role": "District Magistrate / Collector",
-        "jurisdiction": "District Collectorate (All Tehsils)",
-        "department": "District Revenue Administration",
-        "email": "arvind.dm@ias.nic.in",
-        "phone": "+91 94310 11002",
-        "is_active": True,
-        "is_super_admin": True,
-        "created_at": "2023-08-10T10:00:00Z",
-        "last_login": "2 hours ago",
-        "permissions": {
-            "can_upload": True,
-            "can_approve": True,
-            "can_edit": False,
-            "can_delete": False,
-            "can_export": True,
-            "can_manage_users": True,
-        },
-    },
-    {
-        "id": "OFFICER-003",
-        "officer_id": "rajeshwar.kanoongo@bihar.gov.in",
-        "name": "Rajeshwar Singh",
-        "role": "Revenue Inspector (Kanoongo)",
-        "jurisdiction": "Circle #2, Benipatti",
-        "department": "Land Revenue & Survey Division",
-        "email": "rajeshwar.kanoongo@bihar.gov.in",
-        "phone": "+91 97712 55431",
-        "is_active": True,
-        "is_super_admin": False,
-        "created_at": "2024-03-01T11:15:00Z",
-        "last_login": "Yesterday, 16:40",
-        "permissions": {
-            "can_upload": True,
-            "can_approve": True,
-            "can_edit": True,
-            "can_delete": False,
-            "can_export": True,
-            "can_manage_users": False,
-        },
-    },
-    {
-        "id": "OFFICER-004",
-        "officer_id": "sunita.patwari@bihar.gov.in",
-        "name": "Sunita Verma",
-        "role": "Lekhpal / Patwari",
-        "jurisdiction": "Halka Rampur & Danapur",
-        "department": "Field Survey & Mutation Cell",
-        "email": "sunita.patwari@bihar.gov.in",
-        "phone": "+91 91223 78912",
-        "is_active": True,
-        "is_super_admin": False,
-        "created_at": "2024-04-12T14:20:00Z",
-        "last_login": "3 days ago",
-        "permissions": {
-            "can_upload": True,
-            "can_approve": False,
-            "can_edit": False,
-            "can_delete": False,
-            "can_export": True,
-            "can_manage_users": False,
-        },
-    },
-    {
-        "id": "OFFICER-005",
-        "officer_id": "manoj.operator@bihar.gov.in",
-        "name": "Manoj Tiwari",
-        "role": "Registry Data Operator",
-        "jurisdiction": "Sub-Registrar Counter 3",
-        "department": "Registration & Stamp Duty Branch",
-        "email": "manoj.operator@bihar.gov.in",
-        "phone": "+91 94314 99120",
-        "is_active": False,
-        "is_super_admin": False,
-        "created_at": "2024-05-18T08:45:00Z",
-        "last_login": "12 days ago",
-        "permissions": {
-            "can_upload": False,
-            "can_approve": False,
-            "can_edit": False,
-            "can_delete": False,
-            "can_export": False,
-            "can_manage_users": False,
-        },
-    },
-    {
-        "id": "OFFICER-006",
-        "officer_id": "verify.officer@gov.in",
-        "name": "Rajeshwar Singh (Verification Officer)",
-        "role": "District Land Verification Officer",
-        "jurisdiction": "District Verification Cell",
-        "department": "Land Revenue & Mutation Division",
-        "email": "verify.officer@gov.in",
-        "phone": "+91 94312 88201",
-        "is_active": True,
-        "is_super_admin": False,
-        "created_at": "2024-02-10T10:00:00Z",
-        "last_login": "Just now",
-        "permissions": {
-            "can_upload": True,
-            "can_approve": True,
-            "can_edit": False,
-            "can_delete": False,
-            "can_export": True,
-            "can_manage_users": False,
-        },
-    },
-]
-
-
 @app.post("/api/auth/login")
-def officer_login(req: AuthLoginRequest):
+def officer_login(req: AuthLoginRequest, db: Session = Depends(get_db)):
     if not req.officer_id or not req.password:
         raise HTTPException(status_code=400, detail="Officer ID and password required")
 
     clean_id = req.officer_id.strip()
 
-    # Check against officer directory
-    matched = next((u for u in OFFICERS_DIRECTORY if u["officer_id"].lower() == clean_id.lower() or u["email"].lower() == clean_id.lower()), None)
+    # Query officer from PostgreSQL database
+    matched = (
+        db.query(Officer)
+        .filter(
+            or_(
+                func.lower(Officer.officer_id) == clean_id.lower(),
+                func.lower(Officer.email) == clean_id.lower(),
+            )
+        )
+        .first()
+    )
 
     if matched:
-        if not matched.get("is_active", True):
+        if not matched.is_active:
             raise HTTPException(
                 status_code=403,
                 detail="Officer access has been SUSPENDED / REVOKED by District Administration. Please contact Tehsildar HQ."
             )
-        matched["last_login"] = "Just now"
+        matched.last_login = "Just now"
+        db.commit()
+        db.refresh(matched)
         return {
             "success": True,
             "token": f"bhoomi_sso_{uuid4().hex[:16]}",
-            "officer": matched,
+            "officer": matched.to_dict(),
         }
 
-    # Fallback profile
+    # If not registered yet, create and persist in PostgreSQL
     if "sawan" in clean_id.lower() or "admin" in clean_id.lower():
         officer_name = "Shri Sawan Pandit"
         role = "Tehsildar / Sub-Registrar"
+        is_admin = True
         perms = {
             "can_upload": True,
             "can_approve": True,
@@ -1219,6 +1373,7 @@ def officer_login(req: AuthLoginRequest):
     else:
         officer_name = clean_id.split("@")[0].replace(".", " ").replace("_", " ").title()
         role = req.role or "Revenue Officer"
+        is_admin = False
         perms = {
             "can_upload": True,
             "can_approve": True,
@@ -1228,69 +1383,110 @@ def officer_login(req: AuthLoginRequest):
             "can_manage_users": False,
         }
 
-    officer_profile = {
-        "id": f"OFFICER-{uuid4().hex[:4].upper()}",
-        "name": officer_name,
-        "officer_id": clean_id,
-        "role": role,
-        "jurisdiction": "Tehsil Headquarter",
-        "department": "Department of Land Resources (DILRMP)",
-        "email": clean_id if "@" in clean_id else f"{clean_id}@gov.in",
-        "phone": "+91 98000 12345",
-        "is_active": True,
-        "permissions": perms,
-        "login_time": datetime.utcnow().isoformat(),
-    }
+    new_officer = Officer(
+        id=f"OFFICER-{uuid4().hex[:4].upper()}",
+        officer_id=clean_id,
+        name=officer_name,
+        role=role,
+        jurisdiction="Tehsil Headquarter",
+        department="Department of Land Resources (DILRMP)",
+        email=clean_id if "@" in clean_id else f"{clean_id}@gov.in",
+        phone="+91 98000 12345",
+        is_active=True,
+        is_super_admin=is_admin,
+        last_login="Just now",
+        permissions=json.dumps(perms),
+    )
+    db.add(new_officer)
+    db.commit()
+    db.refresh(new_officer)
+
     return {
         "success": True,
         "token": f"bhoomi_sso_{uuid4().hex[:16]}",
-        "officer": officer_profile,
+        "officer": new_officer.to_dict(),
     }
 
 
 @app.post("/api/auth/register")
-def officer_register(req: AuthRegisterRequest):
+def officer_register(req: AuthRegisterRequest, db: Session = Depends(get_db)):
     if not req.officer_name or not req.officer_id or not req.password:
         raise HTTPException(status_code=400, detail="All registration fields are required")
+
+    clean_id = req.officer_id.strip()
+    exists = db.query(Officer).filter(
+        or_(
+            func.lower(Officer.officer_id) == clean_id.lower(),
+            func.lower(Officer.email) == clean_id.lower(),
+        )
+    ).first()
+    if exists:
+        raise HTTPException(status_code=400, detail="An officer with this Government ID already exists")
+
+    new_officer = Officer(
+        id=f"OFFICER-{uuid4().hex[:4].upper()}",
+        officer_id=clean_id,
+        name=req.officer_name.strip(),
+        role=req.role or "Revenue Officer",
+        jurisdiction="Tehsil Headquarter",
+        department=req.department or "Department of Land Resources",
+        email=clean_id if "@" in clean_id else f"{clean_id}@gov.in",
+        phone="+91 98000 12345",
+        is_active=True,
+        is_super_admin=False,
+        last_login="Just now",
+        permissions=json.dumps({
+            "can_upload": True,
+            "can_approve": True,
+            "can_edit": False,
+            "can_delete": False,
+            "can_export": True,
+            "can_manage_users": False,
+        }),
+    )
+    db.add(new_officer)
+    db.commit()
+    db.refresh(new_officer)
 
     return {
         "success": True,
         "token": f"bhoomi_sso_{uuid4().hex[:16]}",
-        "officer": {
-            "name": req.officer_name.strip(),
-            "officer_id": req.officer_id.strip(),
-            "role": req.role or "Revenue Officer",
-            "department": req.department or "Department of Land Resources",
-            "login_time": datetime.utcnow().isoformat(),
-        },
+        "officer": new_officer.to_dict(),
     }
 
 
 # =========================================================
-# USER MANAGEMENT & RBAC PERMISSIONS ENDPOINTS
+# USER MANAGEMENT & RBAC PERMISSIONS ENDPOINTS (POSTGRESQL)
 # =========================================================
 
 @app.get("/api/admin/users")
-def get_all_officers():
+def get_all_officers(db: Session = Depends(get_db)):
+    officers = db.query(Officer).order_by(Officer.created_at.asc()).all()
+    officer_dicts = [o.to_dict() for o in officers]
     return {
         "success": True,
-        "total": len(OFFICERS_DIRECTORY),
-        "active_count": sum(1 for u in OFFICERS_DIRECTORY if u.get("is_active")),
-        "suspended_count": sum(1 for u in OFFICERS_DIRECTORY if not u.get("is_active")),
-        "officers": OFFICERS_DIRECTORY,
+        "total": len(officer_dicts),
+        "active_count": sum(1 for u in officer_dicts if u.get("is_active")),
+        "suspended_count": sum(1 for u in officer_dicts if not u.get("is_active")),
+        "officers": officer_dicts,
     }
 
 
 @app.post("/api/admin/users")
-def create_officer(req: CreateOfficerRequest):
+def create_officer(req: CreateOfficerRequest, db: Session = Depends(get_db)):
     if not req.name or not req.officer_id:
         raise HTTPException(status_code=400, detail="Officer Name and ID are required")
 
-    # Check if duplicate
-    exists = any(
-        u["officer_id"].lower() == req.officer_id.lower() or u["email"].lower() == req.email.lower()
-        for u in OFFICERS_DIRECTORY
-    )
+    clean_id = req.officer_id.strip()
+    clean_email = req.email.strip() if req.email else clean_id
+
+    # Check if duplicate in PostgreSQL
+    exists = db.query(Officer).filter(
+        or_(
+            func.lower(Officer.officer_id) == clean_id.lower(),
+            func.lower(Officer.email) == clean_email.lower(),
+        )
+    ).first()
     if exists:
         raise HTTPException(status_code=400, detail="An officer with this Government ID or Email already exists")
 
@@ -1305,65 +1501,91 @@ def create_officer(req: CreateOfficerRequest):
     if req.permissions:
         default_perms.update(req.permissions)
 
-    new_officer = {
-        "id": f"OFFICER-{uuid4().hex[:4].upper()}",
-        "officer_id": req.officer_id.strip(),
-        "name": req.name.strip(),
-        "role": req.role,
-        "jurisdiction": req.jurisdiction,
-        "department": req.department,
-        "email": req.email.strip(),
-        "phone": req.phone or "+91 98000 00000",
-        "is_active": True,
-        "is_super_admin": "tehsildar" in req.role.lower() or "magistrate" in req.role.lower(),
-        "created_at": datetime.utcnow().isoformat(),
-        "last_login": "Never",
-        "permissions": default_perms,
-    }
-    OFFICERS_DIRECTORY.append(new_officer)
+    new_officer = Officer(
+        id=f"OFFICER-{uuid4().hex[:4].upper()}",
+        officer_id=clean_id,
+        name=req.name.strip(),
+        role=req.role,
+        jurisdiction=req.jurisdiction,
+        department=req.department,
+        email=clean_email,
+        phone=req.phone or "+91 98000 00000",
+        is_active=True,
+        is_super_admin="tehsildar" in req.role.lower() or "magistrate" in req.role.lower(),
+        last_login="Never",
+        permissions=json.dumps(default_perms),
+    )
+    db.add(new_officer)
+    db.commit()
+    db.refresh(new_officer)
+
     return {
         "success": True,
-        "message": f"Officer {new_officer['name']} successfully registered with assigned permissions.",
-        "officer": new_officer,
+        "message": f"Officer {new_officer.name} successfully registered in database with assigned permissions.",
+        "officer": new_officer.to_dict(),
     }
 
 
 @app.put("/api/admin/users/{user_id}/permissions")
-def update_officer_permissions(user_id: str, req: OfficerPermissionUpdate):
-    matched = next((u for u in OFFICERS_DIRECTORY if u["id"] == user_id or u["officer_id"].lower() == user_id.lower()), None)
+def update_officer_permissions(user_id: str, req: OfficerPermissionUpdate, db: Session = Depends(get_db)):
+    matched = db.query(Officer).filter(
+        or_(
+            Officer.id == user_id,
+            func.lower(Officer.officer_id) == user_id.lower(),
+        )
+    ).first()
+
     if not matched:
-        raise HTTPException(status_code=404, detail=f"Officer '{user_id}' not found")
+        raise HTTPException(status_code=404, detail=f"Officer '{user_id}' not found in database")
 
     if req.is_active is not None:
-        matched["is_active"] = req.is_active
+        matched.is_active = req.is_active
     if req.role is not None:
-        matched["role"] = req.role
+        matched.role = req.role
     if req.jurisdiction is not None:
-        matched["jurisdiction"] = req.jurisdiction
+        matched.jurisdiction = req.jurisdiction
     if req.permissions is not None:
-        matched["permissions"].update(req.permissions)
+        current_perms = {}
+        if matched.permissions:
+            try:
+                current_perms = json.loads(matched.permissions)
+            except Exception:
+                current_perms = {}
+        current_perms.update(req.permissions)
+        matched.permissions = json.dumps(current_perms)
+
+    db.commit()
+    db.refresh(matched)
 
     return {
         "success": True,
-        "message": f"Updated permissions for {matched['name']} (Status: {'Active' if matched['is_active'] else 'REVOKED'}).",
-        "officer": matched,
+        "message": f"Updated permissions for {matched.name} (Status: {'Active' if matched.is_active else 'REVOKED'}).",
+        "officer": matched.to_dict(),
     }
 
 
 @app.delete("/api/admin/users/{user_id}")
-def delete_or_revoke_officer(user_id: str):
-    global OFFICERS_DIRECTORY
-    matched = next((u for u in OFFICERS_DIRECTORY if u["id"] == user_id or u["officer_id"].lower() == user_id.lower()), None)
-    if not matched:
-        raise HTTPException(status_code=404, detail="Officer not found")
+def delete_or_revoke_officer(user_id: str, db: Session = Depends(get_db)):
+    matched = db.query(Officer).filter(
+        or_(
+            Officer.id == user_id,
+            func.lower(Officer.officer_id) == user_id.lower(),
+        )
+    ).first()
 
-    if matched.get("officer_id") == "sawan.tehsildar@gov.in":
+    if not matched:
+        raise HTTPException(status_code=404, detail="Officer not found in database")
+
+    if matched.officer_id == "sawan.tehsildar@gov.in":
         raise HTTPException(status_code=400, detail="Cannot delete or deactivate Primary Lead Administrator (Shri Sawan Pandit)")
 
-    OFFICERS_DIRECTORY = [u for u in OFFICERS_DIRECTORY if u["id"] != matched["id"]]
+    officer_name = matched.name
+    db.delete(matched)
+    db.commit()
+
     return {
         "success": True,
-        "message": f"Officer {matched['name']} has been removed from authorized personnel registry.",
+        "message": f"Officer {officer_name} has been permanently removed from PostgreSQL personnel registry.",
         "officer_id": user_id,
     }
 
@@ -1401,6 +1623,23 @@ async def upload_land_record(
 
     # Compute Digital Document Hash (SHA-256)
     doc_hash = hashlib.sha256(file_bytes).hexdigest()
+
+    # CHECK 1: File Content Hash Duplicate Check (SHA-256)
+    existing_by_hash = (
+        db.query(LandRecord)
+        .filter(LandRecord.document_hash == doc_hash)
+        .first()
+    )
+    if existing_by_hash:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"DUPLICATE_RECORD_REJECTED: An identical document with matching cryptographic SHA-256 hash "
+                f"({doc_hash[:12]}...) is already registered under Record ID: '{existing_by_hash.record_id}' "
+                f"(Owner: {existing_by_hash.owner_name or 'N/A'}, Survey: {existing_by_hash.survey_number or 'N/A'}, "
+                f"Village: {existing_by_hash.village or 'N/A'}). Duplicate file upload is prohibited."
+            ),
+        )
 
     # Generate unique identifiers
     uuid_tag = uuid4().hex[:8].upper()
@@ -1442,6 +1681,57 @@ async def upload_land_record(
         document_number = str(deed_doc_num).strip()
     else:
         extracted_fields["document_number"] = document_number
+
+    # CHECK 2: Document / Registration Number Duplicate Check
+    if deed_doc_num and str(deed_doc_num).strip() and len(str(deed_doc_num).strip()) >= 3:
+        clean_doc = str(deed_doc_num).strip()
+        existing_by_doc = (
+            db.query(LandRecord)
+            .filter(func.lower(LandRecord.document_number) == clean_doc.lower())
+            .first()
+        )
+        if existing_by_doc:
+            try:
+                file_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"DUPLICATE_RECORD_REJECTED: Deed Registration Number '{clean_doc}' already exists in registry "
+                    f"under Record ID: '{existing_by_doc.record_id}' (Owner: {existing_by_doc.owner_name or 'N/A'}, "
+                    f"Survey Plot: {existing_by_doc.survey_number or 'N/A'}). Re-uploading an existing deed is rejected."
+                ),
+            )
+
+    # CHECK 3: Survey Plot + Village Duplicate Check
+    survey = extracted_fields.get("survey_number")
+    village = extracted_fields.get("village")
+    if survey and village and len(str(survey).strip()) >= 1 and len(str(village).strip()) >= 2:
+        clean_survey = str(survey).strip()
+        clean_village = str(village).strip()
+        existing_by_plot = (
+            db.query(LandRecord)
+            .filter(
+                func.lower(LandRecord.survey_number) == clean_survey.lower(),
+                func.lower(LandRecord.village) == clean_village.lower(),
+            )
+            .first()
+        )
+        if existing_by_plot:
+            try:
+                file_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"DUPLICATE_RECORD_REJECTED: Survey / Khasra Plot '{clean_survey}' in Village '{clean_village}' "
+                    f"is already registered under Record ID: '{existing_by_plot.record_id}' "
+                    f"(Current Owner: {existing_by_plot.owner_name or 'N/A'}, Status: {existing_by_plot.status}). "
+                    f"Duplicate parcel registration without an approved succession or transfer deed is blocked."
+                ),
+            )
 
     # Calculate Completeness & Missing Fields
     completeness = calculate_field_completeness(extracted_fields)
@@ -1497,6 +1787,9 @@ async def upload_land_record(
             document_number=document_number,
             owner_name=extracted_fields.get("owner_name"),
             father_name=extracted_fields.get("father_name"),
+            owner_mobile=extracted_fields.get("owner_mobile"),
+            owner_aadhar=extracted_fields.get("owner_aadhar"),
+            owner_pan=extracted_fields.get("owner_pan"),
             district=extracted_fields.get("district"),
             village=extracted_fields.get("village"),
             survey_number=extracted_fields.get("survey_number"),

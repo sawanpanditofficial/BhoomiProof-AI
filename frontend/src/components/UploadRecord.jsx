@@ -11,6 +11,8 @@ import {
 import ValidationResult from "./ValidationResult";
 import VerificationDashboard from "./VerificationDashboard";
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
 // ======================================================
 // SAFE VALUE FORMATTER
 // ======================================================
@@ -223,7 +225,7 @@ function UploadRecord({ onRecordUploaded }) {
 
       const uploadResponse =
         await fetch(
-          "http://localhost:8000/api/records/upload",
+          `${API_BASE}/api/records/upload`,
           {
             method: "POST",
             body: formData,
@@ -261,7 +263,7 @@ function UploadRecord({ onRecordUploaded }) {
       if (!verificationData) {
         try {
           const explainResponse = await fetch(
-            `http://localhost:8000/api/records/explain/${recordId}`,
+            `${API_BASE}/api/records/explain/${recordId}`,
             { method: "POST" }
           );
           if (explainResponse.ok) {
@@ -337,7 +339,7 @@ function UploadRecord({ onRecordUploaded }) {
 
       const response =
         await fetch(
-          `http://localhost:8000/api/records/verify/${result.record_id}`,
+          `${API_BASE}/api/records/verify/${result.record_id}`,
           {
             method: "POST",
 
@@ -647,6 +649,33 @@ function UploadRecord({ onRecordUploaded }) {
                         .filter(Boolean)
                         .join(", ")
                     : null
+                }
+              />
+
+              {/* OWNER MOBILE */}
+
+              <Field
+                label="Owner Mobile"
+                value={
+                  fields.owner_mobile
+                }
+              />
+
+              {/* AADHAAR CARD */}
+
+              <Field
+                label="Aadhaar Card"
+                value={
+                  fields.owner_aadhar
+                }
+              />
+
+              {/* PAN CARD */}
+
+              <Field
+                label="PAN Card"
+                value={
+                  fields.owner_pan
                 }
               />
 

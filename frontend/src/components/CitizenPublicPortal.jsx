@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import QRCode from "qrcode";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 function CitizenPublicPortal({ onBackToOfficerLogin, lang = "en", onToggleLang }) {
   const [searchType, setSearchType] = useState("ulpin"); // "ulpin" | "khasra" | "doc"
@@ -327,30 +327,14 @@ function CitizenPublicPortal({ onBackToOfficerLogin, lang = "en", onToggleLang }
             </button>
           </form>
 
-          {/* Quick Demo Chips for Judges */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "14px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "11px", color: "#94a3b8" }}>{lang === "hi" ? "त्वरित खोज नमूने:" : "Demo Quick Chips:"}</span>
-            <button
-              type="button"
-              onClick={() => handleQuickExample("274/2")}
-              style={{ background: "#1e293b", border: "1px solid #475569", color: "#e2e8f0", padding: "3px 8px", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}
-            >
-              Khasra 274/2
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickExample("145/2")}
-              style={{ background: "#1e293b", border: "1px solid #475569", color: "#e2e8f0", padding: "3px 8px", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}
-            >
-              Khasra 145/2
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickExample("REG-2018-0417")}
-              style={{ background: "#1e293b", border: "1px solid #475569", color: "#e2e8f0", padding: "3px 8px", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}
-            >
-              Deed REG-2018-0417
-            </button>
+          {/* Search Help Instruction Note */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "12px", color: "#94a3b8", fontSize: "11px" }}>
+            <span>ℹ️</span>
+            <span>
+              {lang === "hi"
+                ? "राष्ट्रीय भूमि रजिस्ट्री से सीधे सत्यापित करने हेतु पंजीकृत भू-आधार संख्या, विलेख क्रमांक अथवा खसरा संख्या दर्ज करें।"
+                : "Enter an officially registered 14-digit Bhu-Aadhaar (ULPIN), Deed Document No, or Khasra Plot number to verify ownership."}
+            </span>
           </div>
 
           {/* Error Banner */}

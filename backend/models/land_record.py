@@ -26,6 +26,10 @@ class LandRecord(Base):
     owner_name = Column(String(255), index=True, nullable=True)
     father_name = Column(String(255), nullable=True)
 
+    owner_mobile = Column(String(50), nullable=True)
+    owner_aadhar = Column(String(50), nullable=True)
+    owner_pan = Column(String(50), nullable=True)
+
     district = Column(String(100), index=True, nullable=True)
     village = Column(String(100), index=True, nullable=True)
 

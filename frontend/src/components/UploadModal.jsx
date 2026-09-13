@@ -11,7 +11,7 @@ import {
   FileCheck2
 } from "lucide-react";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 function UploadModal({
   isOpen,
@@ -141,18 +141,30 @@ function UploadModal({
           {error && (
             <div
               style={{
-                background: "#fee2e2",
-                color: "#b91c1c",
-                padding: "12px 16px",
-                borderRadius: "8px",
+                background: error.includes("DUPLICATE") ? "#fff7ed" : "#fee2e2",
+                border: error.includes("DUPLICATE") ? "1.5px solid #f97316" : "1.5px solid #ef4444",
+                color: error.includes("DUPLICATE") ? "#9a3412" : "#b91c1c",
+                padding: "14px 16px",
+                borderRadius: "10px",
                 fontSize: "13px",
+                lineHeight: "1.5",
                 display: "flex",
-                alignItems: "center",
-                gap: "8px",
+                flexDirection: "column",
+                gap: "6px",
+                marginBottom: "16px",
               }}
             >
-              <AlertTriangle size={18} />
-              <span>{error}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 700 }}>
+                <AlertTriangle size={18} color={error.includes("DUPLICATE") ? "#ea580c" : "#dc2626"} />
+                <span>
+                  {error.includes("DUPLICATE")
+                    ? (lang === "hi" ? "दोहरा विलेख अवरुद्ध (प्रविष्टि अस्वीकृत)" : "Duplicate Record Blocked (Upload Rejected)")
+                    : (lang === "hi" ? "अपलोड त्रुटि" : "Upload Error")}
+                </span>
+              </div>
+              <span style={{ fontSize: "12px" }}>
+                {error.replace("DUPLICATE_RECORD_REJECTED:", "").trim()}
+              </span>
             </div>
           )}
 

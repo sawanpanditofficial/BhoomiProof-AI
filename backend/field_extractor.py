@@ -173,7 +173,45 @@ FIELD_LABELS = [
 
     "Verification Code",
 
-    "Record Status"
+    "Record Status",
+
+    "Mobile Number",
+
+    "Mobile No",
+
+    "Mobile",
+
+    "Phone Number",
+
+    "Phone No",
+
+    "Aadhaar Number",
+
+    "Aadhaar No",
+
+    "Aadhar Number",
+
+    "Aadhar No",
+
+    "Aadhaar Card",
+
+    "Aadhar Card",
+
+    "Aadhaar",
+
+    "Aadhar",
+
+    "PAN Card Number",
+
+    "PAN Card No",
+
+    "PAN Card",
+
+    "PAN Number",
+
+    "PAN No",
+
+    "PAN"
 
 ]
 
@@ -1021,6 +1059,64 @@ def extract_land_record_fields(text):
 
 
     # =====================================================
+    # OWNER IDENTITY & CONTACT DETAILS
+    # =====================================================
+
+    owner_mobile = extract_field(
+        text,
+        [
+            "Mobile Number",
+            "Mobile No",
+            "Mobile",
+            "Phone Number",
+            "Phone No",
+            "Phone",
+            "Contact Number",
+            "Contact No"
+        ]
+    )
+    if not owner_mobile:
+        mob_match = re.search(r'(?:(?:\+91|0)[-\s]?)?([6-9]\d{9})\b', text)
+        if mob_match:
+            owner_mobile = mob_match.group(1)
+
+    owner_aadhar = extract_field(
+        text,
+        [
+            "Aadhaar Number",
+            "Aadhaar No",
+            "Aadhar Number",
+            "Aadhar No",
+            "Aadhaar Card",
+            "Aadhar Card",
+            "Aadhaar",
+            "Aadhar",
+            "UID"
+        ]
+    )
+    if not owner_aadhar:
+        adh_match = re.search(r'\b\d{4}\s?\d{4}\s?\d{4}\b', text)
+        if adh_match:
+            owner_aadhar = adh_match.group(0)
+
+    owner_pan = extract_field(
+        text,
+        [
+            "PAN Card Number",
+            "PAN Card No",
+            "PAN Card",
+            "PAN Number",
+            "PAN No",
+            "PAN"
+        ]
+    )
+    if not owner_pan:
+        pan_match = re.search(r'\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b', text, re.IGNORECASE)
+        if pan_match:
+            owner_pan = pan_match.group(0).upper()
+
+
+    # =====================================================
     # BUILD OWNER OBJECTS
     # =====================================================
 
@@ -1122,6 +1218,15 @@ def extract_land_record_fields(text):
 
         "father_name":
             father_name,
+
+        "owner_mobile":
+            owner_mobile,
+
+        "owner_aadhar":
+            owner_aadhar,
+
+        "owner_pan":
+            owner_pan,
 
         "district":
             district,

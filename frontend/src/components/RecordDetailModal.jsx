@@ -30,7 +30,7 @@ import BlockchainLedgerViewer from "./BlockchainLedgerViewer";
 import TitleGenealogyViewer from "./TitleGenealogyViewer";
 import DeedDiffViewer from "./DeedDiffViewer";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 function RecordDetailModal({ recordId, isOpen, onClose, onRecordUpdated, officer, lang = "en" }) {
   const [detail, setDetail] = useState(null);
@@ -54,6 +54,9 @@ function RecordDetailModal({ recordId, isOpen, onClose, onRecordUpdated, officer
   const [formData, setFormData] = useState({
     owner_name: "",
     father_name: "",
+    owner_mobile: "",
+    owner_aadhar: "",
+    owner_pan: "",
     district: "",
     village: "",
     survey_number: "",
@@ -75,15 +78,30 @@ function RecordDetailModal({ recordId, isOpen, onClose, onRecordUpdated, officer
     let active = true;
 
     async function fetchDetails() {
+      setLoading(true);
+      setError("");
       try {
         const res = await fetch(`${API_BASE}/api/records/${recordId}`);
-        if (!res.ok) throw new Error("Could not load land record details");
+        if (!res.ok) {
+          if (res.status === 404) {
+            throw new Error(
+              lang === "hi"
+                ? `भूमि अभिलेख "${recordId}" डेटाबेस में नहीं मिला। (डेमो डेटा हटाए जाने के कारण यह पुराना रिकॉर्ड हो सकता है। कृपया पृष्ठ रिफ्रेश करें या नया दस्तावेज़ अपलोड करें।)`
+                : `Land record "${recordId}" was not found in the database. (The demo records were cleared from database, so this may be a stale reference. Please refresh or upload a new deed.)`
+            );
+          }
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || "Could not load land record details");
+        }
         const data = await res.json();
         if (active) {
           setDetail(data);
           setFormData({
             owner_name: data.owner_name || "",
             father_name: data.father_name || "",
+            owner_mobile: data.owner_mobile || "",
+            owner_aadhar: data.owner_aadhar || "",
+            owner_pan: data.owner_pan || "",
             district: data.district || "",
             village: data.village || "",
             survey_number: data.survey_number || "",
@@ -97,7 +115,7 @@ function RecordDetailModal({ recordId, isOpen, onClose, onRecordUpdated, officer
         }
       } catch (err) {
         if (active) {
-          setError(err.message);
+          setError(err.message || "Failed to load record");
           setLoading(false);
         }
       }
@@ -537,6 +555,58 @@ function RecordDetailModal({ recordId, isOpen, onClose, onRecordUpdated, officer
                       </div>
 
                       <div className="detail-item">
+                        <label>{lang === "hi" ? "भूस्वामी मोबाइल नंबर" : "Owner Mobile Number"}</label>
+                        {isEditing ? (
+                          <input
+                            type="tel"
+                            className="edit-input"
+                            placeholder="e.g. 9588318046"
+                            value={formData.owner_mobile}
+                            onChange={(e) => handleInputChange("owner_mobile", e.target.value)}
+                          />
+                        ) : (
+                          <span style={{ fontWeight: 600, color: detail.owner_mobile ? "#047857" : "#64748b" }}>
+                            {detail.owner_mobile ? `+91 ${String(detail.owner_mobile).replace(/^\+91\s?/, '')}` : (lang === "hi" ? "दर्ज नहीं" : "Not registered")}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="detail-item">
+                        <label>{lang === "hi" ? "आधार कार्ड विवरण" : "Aadhaar Card Details"}</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="edit-input"
+                            placeholder="e.g. 5432 8901 2345"
+                            value={formData.owner_aadhar}
+                            onChange={(e) => handleInputChange("owner_aadhar", e.target.value)}
+                          />
+                        ) : (
+                          <span style={{ fontWeight: 600, color: detail.owner_aadhar ? "#1e293b" : "#64748b" }}>
+                            {detail.owner_aadhar || (lang === "hi" ? "दर्ज नहीं" : "Not registered")}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="detail-item">
+                        <label>{lang === "hi" ? "पैन कार्ड विवरण" : "PAN Card Details"}</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="edit-input"
+                            placeholder="e.g. ABCDE1234F"
+                            style={{ textTransform: "uppercase" }}
+                            value={formData.owner_pan}
+                            onChange={(e) => handleInputChange("owner_pan", e.target.value.toUpperCase())}
+                          />
+                        ) : (
+                          <span style={{ fontWeight: 600, color: detail.owner_pan ? "#1e293b" : "#64748b", textTransform: "uppercase" }}>
+                            {detail.owner_pan || (lang === "hi" ? "दर्ज नहीं" : "Not registered")}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="detail-item">
                         <label>{lang === "hi" ? "जिला" : "District"}</label>
                         {isEditing ? (
                           <input
@@ -687,7 +757,61 @@ function RecordDetailModal({ recordId, isOpen, onClose, onRecordUpdated, officer
                       </div>
                     </div>
 
-                    {/* Embedded scan container */}
+                    {/* Deed Quick Metadata Details Strip */}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                        gap: "8px",
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "8px",
+                        padding: "10px 12px",
+                        marginBottom: "12px",
+                        fontSize: "12px",
+                      }}
+                    >
+                      <div>
+                        <span style={{ color: "#64748b", display: "block", fontSize: "10px", textTransform: "uppercase", fontWeight: 600 }}>
+                          {lang === "hi" ? "भूस्वामी" : "Owner Name"}
+                        </span>
+                        <strong style={{ color: "#0f172a" }}>{detail.owner_name || "N/A"}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#64748b", display: "block", fontSize: "10px", textTransform: "uppercase", fontWeight: 600 }}>
+                          {lang === "hi" ? "मोबाइल नंबर" : "Mobile Number"}
+                        </span>
+                        <strong style={{ color: detail.owner_mobile ? "#047857" : "#94a3b8" }}>
+                          {detail.owner_mobile ? `+91 ${String(detail.owner_mobile).replace(/^\+91\s?/, '')}` : (lang === "hi" ? "दर्ज नहीं" : "Not Provided")}
+                        </strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#64748b", display: "block", fontSize: "10px", textTransform: "uppercase", fontWeight: 600 }}>
+                          {lang === "hi" ? "आधार कार्ड" : "Aadhaar Card"}
+                        </span>
+                        <strong style={{ color: detail.owner_aadhar ? "#1e293b" : "#94a3b8" }}>
+                          {detail.owner_aadhar || (lang === "hi" ? "दर्ज नहीं" : "Not Provided")}
+                        </strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#64748b", display: "block", fontSize: "10px", textTransform: "uppercase", fontWeight: 600 }}>
+                          {lang === "hi" ? "पैन कार्ड" : "PAN Card"}
+                        </span>
+                        <strong style={{ color: detail.owner_pan ? "#1e293b" : "#94a3b8", textTransform: "uppercase" }}>
+                          {detail.owner_pan || (lang === "hi" ? "दर्ज नहीं" : "Not Provided")}
+                        </strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#64748b", display: "block", fontSize: "10px", textTransform: "uppercase", fontWeight: 600 }}>
+                          {lang === "hi" ? "खसरा / रकबा" : "Plot / Area"}
+                        </span>
+                        <strong style={{ color: "#0f172a" }}>
+                          Plot: {detail.survey_number || "N/A"} | {detail.land_area || "N/A"}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* Embedded scan container - Image and PDF safe rendering */}
                     <div
                       style={{
                         width: "100%",
@@ -695,34 +819,53 @@ function RecordDetailModal({ recordId, isOpen, onClose, onRecordUpdated, officer
                         height: "58vh",
                         background: "#0f172a",
                         borderRadius: "10px",
-                        overflow: "hidden",
+                        overflow: "auto",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         border: "1px solid #334155",
+                        position: "relative",
+                        padding: "12px",
                       }}
                     >
-                      <object
-                        data={`${API_BASE}/api/records/${detail.record_id}/file`}
-                        type="application/pdf"
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          border: "none",
-                          background: "white",
-                        }}
-                      >
-                        <img
+                      {detail.source_file && detail.source_file.toLowerCase().endsWith(".pdf") ? (
+                        <iframe
                           src={`${API_BASE}/api/records/${detail.record_id}/file`}
-                          alt="Deed scan"
+                          title="Scanned Deed PDF"
                           style={{
-                            maxWidth: "100%",
-                            maxHeight: "100%",
-                            objectFit: "contain",
+                            width: "100%",
+                            height: "100%",
+                            border: "none",
+                            borderRadius: "6px",
                             background: "white",
                           }}
                         />
-                      </object>
+                      ) : (
+                        <div
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            overflow: "auto",
+                          }}
+                        >
+                          <img
+                            src={`${API_BASE}/api/records/${detail.record_id}/file`}
+                            alt="Scanned Deed Document"
+                            style={{
+                              maxWidth: "100%",
+                              maxHeight: "100%",
+                              objectFit: "contain",
+                              borderRadius: "6px",
+                              boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+                              background: "#ffffff",
+                              display: "block",
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

@@ -15,6 +15,8 @@ function generateULPIN(record) {
   return `09-24-${str.slice(0, 4)}-${str.slice(4, 8)}-${str.slice(8, 10)}`;
 }
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
 function LandCertificateModal({ record, isOpen, onClose, lang = "en" }) {
   const qrCanvasRef = useRef(null);
 
@@ -23,7 +25,7 @@ function LandCertificateModal({ record, isOpen, onClose, lang = "en" }) {
   useEffect(() => {
     if (!isOpen || !record || !qrCanvasRef.current) return;
 
-    const verificationPayload = `http://localhost:8000/api/records/${record.record_id}?ulpin=${ulpin}`;
+    const verificationPayload = `${API_BASE}/api/records/${record.record_id}?ulpin=${ulpin}`;
 
     QRCode.toCanvas(
       qrCanvasRef.current,

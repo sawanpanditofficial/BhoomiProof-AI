@@ -314,34 +314,36 @@ function DocumentViewerModal({
               justifyContent: "center",
             }}
           >
-            {/* If PDF or SVG/Image, render appropriately */}
-            <object
-              data={fileUrl}
-              type="application/pdf"
-              style={{
-                width: "780px",
-                maxWidth: "90vw",
-                height: "76vh",
-                borderRadius: "8px",
-                border: "none",
-                background: "white",
-                boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
-              }}
-            >
-              {/* Fallback image if object/PDF doesn't render */}
+            {/* If PDF render iframe, else render img directly */}
+            {fileUrl && fileUrl.toLowerCase().includes(".pdf") ? (
+              <iframe
+                src={fileUrl}
+                title={`Land Document ${documentNumber || recordId}`}
+                style={{
+                  width: "780px",
+                  maxWidth: "90vw",
+                  height: "76vh",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "white",
+                  boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+                }}
+              />
+            ) : (
               <img
                 src={fileUrl}
                 alt={`Land Document ${documentNumber || recordId}`}
                 style={{
-                  maxWidth: "850px",
+                  maxWidth: "90vw",
                   maxHeight: "76vh",
                   borderRadius: "8px",
                   boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
                   background: "white",
                   objectFit: "contain",
+                  display: "block",
                 }}
               />
-            </object>
+            )}
           </div>
         </div>
       </div>
